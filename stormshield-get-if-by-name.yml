@@ -1,0 +1,41 @@
+---
+- name: Get Stormshield interfaces by configured name
+  hosts: FW-TEST
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Incldue vars to connect to appliances
+      include_vars: vault.yml
+      no_log: False
+
+    - name: Vars
+      set_fact:
+        appliance:
+          host: "{{ sns_host }}"
+          user: "{{ sns_username }}"
+          password: "{{ sns_password }}"
+          sslverifyhost: False
+          sslverifypeer: False
+        int_dict: {}
+
+  
+    - name: List all interfaces of the appliance
+      sns_command:
+        appliance: "{{ appliance }}"
+        command: CONFIG NETWORK INTERFACE SHOW
+      register: sysif
+      delegate_to: localhost
+
+    - name: Find interfaces to modify, e.g. INT_FW-ADM, INT_FW-EXT and INT_FW-IN
+      set_fact:
+        int_dict: "{{ int_dict | combine ({ item.key : sysif['data'][item.key]['Name'] }) }}"
+      with_dict: "{{ sysif['data'] }}"
+      when: sysif['data'][item.key]['Name'] | regex_search('INT_FW-ADM') or
+            sysif['data'][item.key]['Name'] | regex_search('INT_FW-EXT') or
+            sysif['data'][item.key]['Name'] | regex_search('INT_FW-IN')
+            
+    - name: Sanity Check
+      fail:
+        msg: "Interfaces not found"
+      when: int_dict | length < 3
