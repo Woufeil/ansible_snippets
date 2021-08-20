@@ -29,7 +29,7 @@
 
     - name: Find interfaces to modify, e.g. INT_FW-ADM, INT_FW-EXT and INT_FW-IN
       set_fact:
-        int_dict: "{{ int_dict | combine ({ item.key : sysif['data'][item.key]['Name'] }) }}"
+        int_dict: "{{ int_dict | combine ({ sysif['data'][item.key]['Name'] : item.key }) }}"
       with_dict: "{{ sysif['data'] }}"
       when: sysif['data'][item.key]['Name'] | regex_search('INT_FW-ADM') or
             sysif['data'][item.key]['Name'] | regex_search('INT_FW-EXT') or
